@@ -1,5 +1,3 @@
-
-
 require('dotenv').config();
 
 const express = require('express');
@@ -33,8 +31,8 @@ app.get('/api/produtos', async (req, res) => {
         .select(`
             id,
             nome,
-            preco,
             descricao,
+            preco,
             imagem,
             categorias ( id, nome )
         `);
@@ -64,8 +62,9 @@ app.get('/api/produtos/categoria/:nomeCategoria', async (req, res) => {
         .select(`
             id,
             nome,
-            preco,
             descricao,
+            preco,
+            imagem,
             categorias!inner ( nome )
         `)
         .ilike('categorias.nome', nomeCategoria);
