@@ -149,8 +149,6 @@ app.use((err, req, res, next) => {
 // ================= SERVIDOR ================= //
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando na porta ${PORT}`);
-});
-
-module.exports = app;
+// COLOQUE ISSO ✅
+const serverless = require('serverless-http');
+module.exports = serverless(app);
