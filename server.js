@@ -156,6 +156,4 @@ app.listen(PORT, () => {
 
 module.exports = app;
 
-// COLOQUE ISSO ✅
-const serverless = require('serverless-http');
-module.exports = serverless(app);
+
