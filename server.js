@@ -147,12 +147,15 @@ app.use((err, req, res, next) => {
 });
 
 // ================= SERVIDOR ================= //
-const PORT = process.env.PORT || 3000;
+const serverless = require('serverless-http');
 
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando na porta ${PORT}`);
-});
+if (!process.env.VERCEL) {
+    const PORT = process.env.PORT || 3000;
 
-module.exports = app;
+    app.listen(PORT, () => {
+        console.log(`🚀 Rodando local na porta ${PORT}`);
+    });
+}
 
+module.exports = serverless(app);
 
