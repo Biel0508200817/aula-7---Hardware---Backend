@@ -5,10 +5,23 @@ const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
+const router = express.Router();
+
+// ================= VALIDAÇÃO ENV ================= //
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_KEY) {
+    console.error("❌ ERRO: Variáveis do Supabase não definidas no .env");
+    process.exit(1);
+}
 
 // ================= MIDDLEWARES ================= //
 app.use(cors());
 app.use(express.json());
+
+// ================= LOGGER ================= //
+app.use((req, res, next) => {
+    console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.originalUrl}`);
+    next();
+});
 
 // ================= SUPABASE ================= //
 const supabase = createClient(
@@ -16,131 +29,150 @@ const supabase = createClient(
     process.env.SUPABASE_KEY
 );
 
-// ================= LOGGER ================= //
-app.use((req, res, next) => {
-    console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
-    next();
-});
-
 // ================= ROTAS ================= //
 
-// 1. LISTAR PRODUTOS (COM CATEGORIA)
-app.get('/api/produtos', async (req, res) => {
-    const { data, error } = await supabase
-        .from('produtos')
-        .select(`
-            id,
-            nome,
-            descricao,
-            preco,
-            imagem,
-            categorias ( id, nome )
-        `);
+// 1. LISTAR PRODUTOS
+router.get('/produtos', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('produtos')
+            .select(`
+                id,
+                nome,
+                descricao,
+                preco,
+                imagem,
+                categorias ( id, nome )
+            `);
 
-    if (error) return res.status(500).json({ error: error.message });
+        if (error) throw error;
 
-    res.json(data);
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-// 2. LISTAR TODAS AS CATEGORIAS
-app.get('/api/categorias', async (req, res) => {
-    const { data, error } = await supabase
-        .from('categorias')
-        .select('*');
+// 2. LISTAR CATEGORIAS
+router.get('/categorias', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('categorias')
+            .select('*');
 
-    if (error) return res.status(500).json({ error: error.message });
+        if (error) throw error;
 
-    res.json(data);
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
-// 3. BUSCAR PRODUTOS POR CATEGORIA (NOME)
-app.get('/api/produtos/categoria/:nomeCategoria', async (req, res) => {
-    const { nomeCategoria } = req.params;
+// 3. PRODUTOS POR CATEGORIA
+router.get('/produtos/categoria/:nomeCategoria', async (req, res) => {
+    try {
+        const { nomeCategoria } = req.params;
 
-    const { data, error } = await supabase
-        .from('produtos')
-        .select(`
-            id,
-            nome,
-            descricao,
-            preco,
-            imagem,
-            categorias!inner ( nome )
-        `)
-        .ilike('categorias.nome', nomeCategoria);
+        const { data, error } = await supabase
+            .from('produtos')
+            .select(`
+                id,
+                nome,
+                descricao,
+                preco,
+                imagem,
+                categorias!inner ( nome )
+            `)
+            .ilike('categorias.nome', `%${nomeCategoria}%`);
 
-    if (error) return res.status(500).json({ error: error.message });
+        if (error) throw error;
 
-    res.json(data);
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 // 4. CRIAR PRODUTO
-app.post('/api/produtos', async (req, res) => {
-    const { nome, preco, categoria_id, descricao, imagem } = req.body;
+router.post('/produtos', async (req, res) => {
+    try {
+        const { nome, preco, categoria_id, descricao, imagem } = req.body;
 
-    if (!nome || preco == null || !categoria_id) {
-        return res.status(400).json({
-            error: "Nome, preço e categoria_id são obrigatórios."
-        });
+        if (!nome || preco == null || !categoria_id) {
+            return res.status(400).json({
+                error: "Nome, preço e categoria_id são obrigatórios."
+            });
+        }
+
+        const { data, error } = await supabase
+            .from('produtos')
+            .insert([{ nome, preco, categoria_id, descricao, imagem }])
+            .select();
+
+        if (error) throw error;
+
+        res.status(201).json(data[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
-
-    const { data, error } = await supabase
-        .from('produtos')
-        .insert([{ nome, preco, categoria_id, descricao, imagem }])
-        .select();
-
-    if (error) return res.status(500).json({ error: error.message });
-
-    res.status(201).json(data[0]);
 });
 
 // 5. ATUALIZAR PRODUTO
-app.put('/api/produtos/:id', async (req, res) => {
-    const { id } = req.params;
-    const { nome, preco, categoria_id, descricao, imagem } = req.body;
+router.put('/produtos/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nome, preco, categoria_id, descricao, imagem } = req.body;
 
-    const { data, error } = await supabase
-        .from('produtos')
-        .update({ nome, preco, categoria_id, descricao, imagem })
-        .eq('id', id)
-        .select();
+        const { data, error } = await supabase
+            .from('produtos')
+            .update({ nome, preco, categoria_id, descricao, imagem })
+            .eq('id', id)
+            .select();
 
-    if (error) return res.status(500).json({ error: error.message });
+        if (error) throw error;
 
-    if (!data.length) {
-        return res.status(404).json({ error: "Produto não encontrado." });
+        if (!data.length) {
+            return res.status(404).json({ error: "Produto não encontrado." });
+        }
+
+        res.json(data[0]);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
-
-    res.json(data[0]);
 });
 
-// 6. DELETAR PRODUTO (UUID CORRETO)
-app.delete('/api/produtos/:id', async (req, res) => {
-    const { id } = req.params;
+// 6. DELETAR PRODUTO
+router.delete('/produtos/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
 
-    const { data, error } = await supabase
-        .from('produtos')
-        .delete()
-        .eq('id', id)
-        .select();
+        const { data, error } = await supabase
+            .from('produtos')
+            .delete()
+            .eq('id', id)
+            .select();
 
-    if (error) return res.status(500).json({ error: error.message });
+        if (error) throw error;
 
-    if (!data.length) {
-        return res.status(404).json({ error: "Produto não encontrado." });
+        if (!data.length) {
+            return res.status(404).json({ error: "Produto não encontrado." });
+        }
+
+        res.status(204).send();
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
-
-    res.status(204).send();
 });
 
-// ================= ERROS ================= //
+// ================= USAR PREFIXO /api ================= //
+app.use('/api', router);
 
-// 404
+// ================= 404 ================= //
 app.use((req, res) => {
     res.status(404).json({ error: "Rota não encontrada." });
 });
 
-// 500
+// ================= 500 ================= //
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ error: "Erro interno do servidor." });
@@ -150,9 +182,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor rodando na porta ${PORT}`);
+    console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
 });
 
 module.exports = app;
-
-
