@@ -29,7 +29,7 @@ app.use((req, res, next) => {
 // ================= ROTAS ================= //
 
 // LISTAR PRODUTOS
-app.get('/produtos', async (req, res) => {
+app.get('api/produtos', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('produtos')
@@ -51,7 +51,7 @@ app.get('/produtos', async (req, res) => {
 });
 
 // LISTAR CATEGORIAS
-app.get('/categorias', async (req, res) => {
+app.get('api/categorias', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('categorias')
@@ -66,7 +66,7 @@ app.get('/categorias', async (req, res) => {
 });
 
 // PRODUTOS POR CATEGORIA
-app.get('/produtos/categoria/:nomeCategoria', async (req, res) => {
+app.get('api/produtos/categoria/:nomeCategoria', async (req, res) => {
   try {
     const { nomeCategoria } = req.params;
 
